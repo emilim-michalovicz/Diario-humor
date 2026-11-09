@@ -1,0 +1,957 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Diário de Humor</title>
+<meta name="description" content="Diário pessoal de humor: termômetro de 0 a 100, sono, treino, compulsão alimentar e pontos positivos e negativos do dia.">
+<meta name="theme-color" content="#EDEFF5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#11131B" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Diário">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&display=swap">
+<style>
+/* Layout: one phone-width column (max 34rem); sticky date header; the thermometer is the centerpiece; fixed tab bar at the bottom */
+:root{
+  --bg:#EDEFF5; --surface:#FFFFFF; --sunk:#E3E6F0; --line:#D2D6E4;
+  --ink:#191C2B; --muted:#596077; --accent:#3446A6; --accent-ink:#FFFFFF;
+  --pos:#2D7F47; --neg:#B83838; --warn-bg:#FBE9E7; --warn-ink:#7A1D1D;
+  --on-light:#1B1E2A; --on-dark:#FFFFFF;
+  --l0:#CDE8BF; --l10:#8ECA69; --l20:#5BB357; --l30:#A2C1E6; --l40:#588CCF;
+  --l50:#E9D44C; --l60:#EFAD35; --l70:#EF8859; --l80:#E2656A; --l90:#D04444; --l100:#A92323;
+  --f-display:"Bricolage Grotesque","Segoe UI",system-ui,-apple-system,sans-serif;
+  --f-body:"Atkinson Hyperlegible","Segoe UI",system-ui,-apple-system,sans-serif;
+  color-scheme:light;
+  padding-top:env(safe-area-inset-top,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#11131B; --surface:#1A1D29; --sunk:#242838; --line:#30354A;
+    --ink:#ECEEF6; --muted:#9CA2BA; --accent:#919FFF; --accent-ink:#11131B;
+    --pos:#68C584; --neg:#F27E7E; --warn-bg:#3A1E22; --warn-ink:#FFD3D0;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#11131B; --surface:#1A1D29; --sunk:#242838; --line:#30354A;
+  --ink:#ECEEF6; --muted:#9CA2BA; --accent:#919FFF; --accent-ink:#11131B;
+  --pos:#68C584; --neg:#F27E7E; --warn-bg:#3A1E22; --warn-ink:#FFD3D0;
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.45;-webkit-tap-highlight-color:transparent}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+[hidden]{display:none!important}
+img{max-width:100%}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer;touch-action:manipulation}
+button:disabled{cursor:default}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.band{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:34rem;margin:0 auto}
+
+/* Header */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--bg);border-bottom:1px solid var(--line)}
+.top .wrap{padding-block:10px 8px;display:grid;gap:6px}
+.brand-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{font-family:var(--f-display);font-weight:800;font-size:18px;letter-spacing:-.01em}
+.sync{font-size:12px;color:var(--muted);display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.sync::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.sync[data-s="ok"]::before{background:var(--pos)}
+.sync[data-s="off"]::before{background:var(--neg)}
+.datebar{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;gap:4px}
+.nav-btn{width:44px;height:44px;border-radius:12px;border:0;background:transparent;font-size:26px;line-height:1;color:var(--ink);display:grid;place-items:center}
+.nav-btn:disabled{opacity:.25}
+.date-c{text-align:center;display:grid;justify-items:center;gap:2px}
+.date-l{font-family:var(--f-display);font-weight:700;font-size:19px;line-height:1.15}
+.date-s{font-size:14px;color:var(--muted)}
+.today-btn{border:1px solid var(--line);background:var(--surface);border-radius:999px;font-size:13px;padding:3px 12px;margin-top:2px}
+
+/* Main */
+main.band{padding-block:14px calc(84px + env(safe-area-inset-bottom,0px))}
+.view{display:grid;gap:14px}
+.card{background:var(--surface);border-radius:18px;padding:18px 16px;display:grid;gap:14px}
+.card h2{font-family:var(--f-display);font-weight:700;font-size:19px;line-height:1.2;margin:0;text-wrap:balance}
+.card .sub{margin:-8px 0 0;color:var(--muted);font-size:14px}
+.k-label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+
+/* Thermometer */
+.thermo{position:relative;display:grid;gap:3px;padding-top:2px}
+.thermo::before{content:"";position:absolute;left:0;top:0;width:66px;bottom:44px;border:2px solid var(--line);border-bottom:0;border-radius:33px 33px 0 0;pointer-events:none}
+.lv{position:relative;display:grid;grid-template-columns:66px minmax(0,1fr);align-items:center;gap:12px;background:none;border:0;padding:0;text-align:left;min-height:34px;border-radius:12px}
+.lv .seg{margin-left:7px;width:52px;height:34px;border-radius:4px;display:grid;place-items:center;font-family:var(--f-display);font-weight:700;font-size:15px;font-variant-numeric:tabular-nums;background:color-mix(in srgb,var(--c) 24%,var(--surface));color:var(--muted);transition:background-color .18s ease,color .18s ease}
+.lv:first-child .seg{height:40px;border-radius:26px 26px 4px 4px}
+.lv.bulb{margin-top:2px}
+.lv.bulb .seg{position:relative;z-index:1;width:74px;height:74px;margin-left:-4px;border-radius:50%;border:2px solid var(--line);font-size:18px}
+.lv.on .seg{background:var(--c);color:var(--t)}
+.lv .lbl{font-size:15px;color:var(--muted);padding:6px 10px;border-radius:10px;justify-self:start;transition:background-color .18s ease}
+.lv.cur .lbl{background:var(--sunk);color:var(--ink);font-weight:700}
+.lv.cur .seg{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--ink)}
+
+.callout{display:grid;grid-template-columns:52px minmax(0,1fr);gap:12px;align-items:start;padding:14px;border-radius:14px;background:var(--sunk)}
+.callout svg{width:52px;height:52px;display:block}
+.co-title{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.co-num{font-family:var(--f-display);font-weight:800;font-size:28px;line-height:1;font-variant-numeric:tabular-nums}
+.co-name{font-family:var(--f-display);font-weight:700;font-size:17px}
+.co-desc{margin:4px 0 0;font-size:15px;color:var(--ink)}
+
+.reg-row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.field{display:grid;gap:4px}
+.field label{font-size:13px;color:var(--muted)}
+input[type="time"]{height:46px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface);padding:0 10px;font-variant-numeric:tabular-nums;min-width:0}
+.primary{height:46px;border:0;border-radius:12px;background:var(--accent);color:var(--accent-ink);font-weight:700;padding:0 18px;flex:1 1 160px}
+.primary:disabled{opacity:.4}
+
+.alert{background:var(--warn-bg);color:var(--warn-ink);border-radius:14px;padding:12px 14px;font-size:15px;display:grid;gap:6px}
+.alert p{margin:0}
+.alert strong{font-size:16px}
+.alert a{color:inherit;font-weight:700}
+.alert .num{font-family:var(--f-display);font-weight:800;font-size:20px}
+
+.day-line{font-size:14px;color:var(--muted);margin:0}
+.day-line b{color:var(--ink);font-variant-numeric:tabular-nums}
+.readings{display:flex;flex-wrap:wrap;gap:8px}
+.rd{display:inline-flex;align-items:center;gap:7px;padding:4px 4px 4px 10px;border-radius:999px;border:1.5px solid var(--line);font-size:14px;font-variant-numeric:tabular-nums}
+.rd i{width:12px;height:12px;border-radius:50%;background:var(--c);flex:none}
+.rd b{font-family:var(--f-display);font-size:15px}
+.rd span{color:var(--muted)}
+.x-btn{width:30px;height:30px;border-radius:50%;border:0;background:transparent;color:var(--muted);font-size:18px;line-height:1;display:grid;place-items:center;flex:none}
+.empty-line{margin:0;font-size:14px;color:var(--muted)}
+
+/* Rows and option buttons */
+.row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 14px}
+.row-l{font-weight:700;display:flex;align-items:baseline;gap:10px}
+.link-btn{border:0;background:none;color:var(--accent);font-size:13px;font-weight:700;padding:4px 0}
+.opts{display:flex;flex-wrap:wrap;gap:6px}
+.opt{min-height:42px;border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 15px;font-size:15px}
+.opt[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
+.stepper{display:inline-grid;grid-template-columns:44px minmax(72px,auto) 44px;align-items:center;border:1.5px solid var(--line);border-radius:999px;overflow:hidden}
+.stepper button{height:42px;border:0;background:transparent;font-size:22px;line-height:1}
+.stepper output{text-align:center;font-family:var(--f-display);font-weight:700;font-size:18px;font-variant-numeric:tabular-nums}
+.divider{height:1px;background:var(--line);margin:0}
+
+/* Points */
+.pts{display:grid;gap:8px}
+.pts h3{margin:0;font-size:15px;display:flex;align-items:center;gap:8px}
+.pts h3 .sign{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-family:var(--f-display);font-weight:800;font-size:16px;color:var(--surface)}
+.pts.pos h3 .sign{background:var(--pos)}
+.pts.neg h3 .sign{background:var(--neg)}
+.pt-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.pt-list li{display:flex;align-items:flex-start;gap:8px;background:var(--sunk);border-radius:10px;padding:8px 4px 8px 12px}
+.pt-list li span{flex:1;min-width:0;overflow-wrap:anywhere;padding-top:3px}
+.add{display:flex;gap:8px}
+.add input{flex:1;min-width:0;height:44px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface);padding:0 12px}
+.add button{width:44px;height:44px;border-radius:12px;border:0;background:var(--sunk);font-size:22px;font-weight:700;flex:none}
+.pts.pos .add button{color:var(--pos)}
+.pts.neg .add button{color:var(--neg)}
+textarea{width:100%;min-height:96px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface);padding:10px 12px;resize:vertical;line-height:1.45}
+
+/* History */
+.hist-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.hist-head h2{font-family:var(--f-display);font-weight:800;font-size:22px;margin:0}
+.count-line{margin:-6px 0 0;color:var(--muted);font-size:14px}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.stat{background:var(--surface);border-radius:16px;padding:14px;display:grid;gap:2px;min-width:0}
+.stat .v{font-family:var(--f-display);font-weight:800;font-size:28px;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat .s{font-size:13px;color:var(--muted)}
+.chart-scroll{overflow-x:auto;margin:0 -4px;padding:0 4px}
+.chart{display:grid;gap:10px}
+.track-l{font-size:13px;color:var(--muted);margin-bottom:4px}
+.track{display:grid;align-items:end}
+.track .c{position:relative;height:100%}
+.t-thermo{height:132px;background:linear-gradient(to top,transparent calc(50% - .5px),var(--line) calc(50% - .5px),var(--line) calc(50% + .5px),transparent calc(50% + .5px));border-bottom:1.5px solid var(--line)}
+.t-sleep{height:56px;border-bottom:1.5px solid var(--line)}
+.bar{position:absolute;left:0;right:0;bottom:0;border-radius:3px 3px 0 0}
+.t-sleep .bar{background:color-mix(in srgb,var(--accent) 70%,var(--surface))}
+.avg{position:absolute;left:50%;width:7px;height:7px;margin:0 0 -3.5px -3.5px;border-radius:50%;background:var(--ink);box-shadow:0 0 0 1.5px var(--surface)}
+.t-dots{height:16px;align-items:center}
+.t-dots .c{display:grid;place-items:center}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.dot.yes{background:var(--ink)}
+.dot.no{border:1.5px solid var(--muted)}
+.t-dates .c{text-align:center;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;height:auto}
+.t-dates .c.today{color:var(--ink);font-weight:700}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.lg-bar{width:10px;height:12px;border-radius:2px 2px 0 0;background:var(--l60)}
+.lg-avg{width:7px;height:7px;border-radius:50%;background:var(--ink)}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.ghost{min-height:44px;border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:8px 16px;font-weight:700;flex:1 1 150px}
+#copyFallback{min-height:160px;font-size:13px}
+.backup-info{margin:0;font-size:15px}
+.backup-info.stale{color:var(--neg);font-weight:700}
+.day-list{display:grid;gap:10px}
+.dcard{background:var(--surface);border-radius:16px;padding:14px 14px 12px;display:grid;gap:8px}
+.dcard-h{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.dcard-h strong{font-family:var(--f-display);font-size:16px}
+.dcard p{margin:0;font-size:14px}
+.dcard .meta{color:var(--muted)}
+.dcard ul{margin:0;padding:0;list-style:none;display:grid;gap:3px;font-size:14px}
+.dcard li{overflow-wrap:anywhere}
+.dcard li.p::before{content:"+ ";color:var(--pos);font-weight:700}
+.dcard li.n::before{content:"− ";color:var(--neg);font-weight:700}
+.open-btn{border:1.5px solid var(--line);background:transparent;border-radius:999px;padding:4px 12px;font-size:13px;font-weight:700}
+.empty{background:var(--surface);border-radius:16px;padding:22px 16px;text-align:center;color:var(--muted);display:grid;gap:10px;justify-items:center}
+.empty p{margin:0;max-width:30ch}
+
+/* Tabs */
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.tabs .wrap{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-block:8px}
+.tab{height:46px;border:0;border-radius:12px;background:transparent;color:var(--muted);font-weight:700;font-size:15px}
+.tab[aria-current="page"]{background:var(--sunk);color:var(--ink)}
+
+.toast{position:fixed;z-index:30;left:50%;transform:translateX(-50%);bottom:calc(78px + env(safe-area-inset-bottom,0px));width:min(30rem,calc(100% - 32px));background:var(--ink);color:var(--surface);border-radius:14px;padding:10px 10px 10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:15px;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+.toast button{border:0;background:transparent;color:var(--surface);font-weight:700;text-decoration:underline;padding:6px 8px}
+
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="top band">
+  <div class="wrap">
+    <div class="brand-row">
+      <span class="brand">Diário de Humor</span>
+      <span class="sync" id="sync" data-s="ok">Salvo neste aparelho</span>
+    </div>
+    <div class="datebar" id="datebar">
+      <button type="button" class="nav-btn" id="prevDay" aria-label="Dia anterior">‹</button>
+      <div class="date-c">
+        <span class="date-l" id="dateL">Hoje</span>
+        <span class="date-s" id="dateS"></span>
+        <button type="button" class="today-btn" id="todayBtn" hidden>Voltar para hoje</button>
+      </div>
+      <button type="button" class="nav-btn" id="nextDay" aria-label="Próximo dia">›</button>
+    </div>
+  </div>
+</header>
+
+<main class="band">
+  <div class="wrap">
+    <div class="alert" id="storageWarn" hidden style="margin-bottom:14px">
+      <strong>Este navegador não está salvando os registros.</strong>
+      <p>Isso costuma acontecer em aba anônima. Abra o diário pelo ícone da tela de início ou numa aba normal do Safari.</p>
+    </div>
+
+    <!-- DAY VIEW -->
+    <section class="view" id="viewDay" aria-label="Registro do dia">
+      <div class="card">
+        <h2>Como estou agora</h2>
+        <p class="sub">Toque no nível do termômetro e registre. Dá para registrar várias vezes no mesmo dia.</p>
+        <div class="thermo" id="thermo" role="radiogroup" aria-label="Termômetro de 0 a 100"></div>
+        <div class="callout">
+          <svg id="face" viewBox="0 0 40 40" aria-hidden="true"></svg>
+          <div>
+            <div class="co-title"><span class="co-num" id="coNum">—</span><span class="co-name" id="coName">Escolha um nível</span></div>
+            <p class="co-desc" id="coDesc">Toque no termômetro no nível que mais combina com o que você sente agora.</p>
+          </div>
+        </div>
+        <div class="alert" id="alertBox" hidden>
+          <strong>Esse nível é muito alto.</strong>
+          <p>Se puder, não fique sozinha com isso agora. Fale com alguém de confiança ou com seu psiquiatra.</p>
+          <p>O CVV atende 24 horas, de graça: ligue <a class="num" href="tel:188">188</a> ou converse pelo chat em <a href="https://cvv.org.br" target="_blank" rel="noopener">cvv.org.br</a>.</p>
+        </div>
+        <div class="reg-row">
+          <div class="field">
+            <label for="regTime">Horário</label>
+            <input type="time" id="regTime">
+          </div>
+          <button type="button" class="primary" id="regBtn" disabled>Registrar</button>
+        </div>
+        <div class="divider"></div>
+        <div style="display:grid;gap:8px">
+          <span class="k-label" id="readTitle">Registros de hoje</span>
+          <p class="day-line" id="dayLine" hidden></p>
+          <div class="readings" id="readings"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Sono</h2>
+        <div class="row">
+          <span class="row-l">Horas dormidas <button type="button" class="link-btn" id="sleepClear" hidden>limpar</button></span>
+          <div class="stepper">
+            <button type="button" id="sleepMinus" aria-label="Menos meia hora">−</button>
+            <output id="sleepVal" aria-live="polite">—</output>
+            <button type="button" id="sleepPlus" aria-label="Mais meia hora">+</button>
+          </div>
+        </div>
+        <div class="row">
+          <span class="row-l">Qualidade</span>
+          <div class="opts" id="sleepQ">
+            <button type="button" class="opt" data-q="ruim" aria-pressed="false">Ruim</button>
+            <button type="button" class="opt" data-q="regular" aria-pressed="false">Regular</button>
+            <button type="button" class="opt" data-q="boa" aria-pressed="false">Boa</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Hábitos</h2>
+        <div class="row">
+          <span class="row-l">Treino</span>
+          <div class="opts yn" data-k="trained">
+            <button type="button" class="opt" data-val="1" aria-pressed="false">Treinei</button>
+            <button type="button" class="opt" data-val="0" aria-pressed="false">Não treinei</button>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="row">
+          <span class="row-l">Compulsão alimentar</span>
+          <div class="opts yn" data-k="binge">
+            <button type="button" class="opt" data-val="1" aria-pressed="false">Tive</button>
+            <button type="button" class="opt" data-val="0" aria-pressed="false">Não tive</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Pontos do dia</h2>
+        <div class="pts pos">
+          <h3><span class="sign" aria-hidden="true">+</span>Pontos positivos</h3>
+          <ul class="pt-list" id="posList"></ul>
+          <form class="add" id="posForm">
+            <input id="posInput" maxlength="200" placeholder="Algo bom que aconteceu" autocomplete="off" aria-label="Novo ponto positivo">
+            <button type="submit" aria-label="Adicionar ponto positivo">+</button>
+          </form>
+        </div>
+        <div class="divider"></div>
+        <div class="pts neg">
+          <h3><span class="sign" aria-hidden="true">−</span>Pontos negativos</h3>
+          <ul class="pt-list" id="negList"></ul>
+          <form class="add" id="negForm">
+            <input id="negInput" maxlength="200" placeholder="Algo que pesou" autocomplete="off" aria-label="Novo ponto negativo">
+            <button type="submit" aria-label="Adicionar ponto negativo">+</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Anotações</h2>
+        <textarea id="notes" maxlength="4000" placeholder="Remédios, gatilhos, como foi o dia… o que quiser lembrar." aria-label="Anotações do dia"></textarea>
+      </div>
+    </section>
+
+    <!-- HISTORY VIEW -->
+    <section class="view" id="viewHist" hidden aria-label="Histórico">
+      <div class="hist-head">
+        <h2>Histórico</h2>
+        <div class="opts" id="histN">
+          <button type="button" class="opt" data-n="14" aria-pressed="true">14 dias</button>
+          <button type="button" class="opt" data-n="30" aria-pressed="false">30 dias</button>
+        </div>
+      </div>
+      <p class="count-line" id="countLine"></p>
+      <div class="stats" id="stats"></div>
+      <div class="card">
+        <div class="chart-scroll"><div class="chart" id="chart"></div></div>
+        <div class="legend">
+          <span><i class="lg-bar"></i>Termômetro: pior momento do dia</span>
+          <span><i class="lg-avg"></i>Média do dia</span>
+          <span><i class="dot yes"></i>Sim</span>
+          <span><i class="dot no"></i>Não</span>
+        </div>
+      </div>
+      <div class="actions">
+        <button type="button" class="ghost" id="copyBtn">Copiar resumo do período</button>
+        <button type="button" class="ghost" id="csvBtn">Exportar planilha (CSV)</button>
+      </div>
+      <textarea id="copyFallback" hidden readonly aria-label="Resumo para copiar"></textarea>
+
+      <div class="card">
+        <h2>Cópia de segurança</h2>
+        <p class="sub">Os registros ficam guardados só neste celular. Faça um backup de vez em quando e guarde o arquivo no iCloud Drive ou mande para você mesma.</p>
+        <p class="backup-info" id="backupInfo">Último backup: nunca</p>
+        <div class="actions">
+          <button type="button" class="ghost" id="backupBtn">Fazer backup</button>
+          <button type="button" class="ghost" id="restoreBtn">Restaurar backup</button>
+        </div>
+        <input type="file" id="restoreFile" accept=".json,application/json" hidden>
+      </div>
+
+      <div class="day-list" id="dayList"></div>
+    </section>
+  </div>
+</main>
+
+<nav class="tabs band" aria-label="Seções">
+  <div class="wrap">
+    <button type="button" class="tab" data-view="day" aria-current="page">Dia</button>
+    <button type="button" class="tab" data-view="hist">Histórico</button>
+  </div>
+</nav>
+
+<div class="toast" id="toast" hidden role="status"><span id="toastMsg"></span><button type="button" id="toastUndo" hidden>Desfazer</button></div>
+
+<script>
+(function(){
+"use strict";
+const $ = id => document.getElementById(id);
+
+/* ---------- Scale ---------- */
+const LEVELS = [
+  {v:0,   name:"Em paz",          desc:"Nenhum desconforto. Totalmente relaxada e tranquila.", light:true},
+  {v:10,  name:"Calma",           desc:"Sem desconforto importante. Alerta, focada e serena.", light:true},
+  {v:20,  name:"Mínimo",          desc:"Um incômodo que quase não se nota, só se eu ficar pensando nele.", light:true},
+  {v:30,  name:"Mínimo a leve",   desc:"Um pouco preocupada, mas ainda consigo me concentrar.", light:true},
+  {v:40,  name:"Leve",            desc:"Consigo funcionar, mas o mal-estar já é difícil de ignorar.", light:false},
+  {v:50,  name:"Leve a moderado", desc:"Sinto desconforto, mas os sentimentos ainda são administráveis.", light:true},
+  {v:60,  name:"Moderado",        desc:"Estou mal o bastante para sentir que preciso fazer alguma coisa.", light:true},
+  {v:70,  name:"Moderado a alto", desc:"Perdendo o foco. Mantenho o controle, mas com esforço.", light:false},
+  {v:80,  name:"Alto",            desc:"Emoções muito desconfortáveis, difíceis de aguentar por muito tempo.", light:false},
+  {v:90,  name:"Muito alto",      desc:"Perdendo o controle das emoções, sensação de desespero, risco de decisões ruins.", light:false},
+  {v:100, name:"Extremo",         desc:"Angústia extrema. Não consigo pensar com clareza, só reagir.", light:false}
+];
+const LV = v => LEVELS.find(l => l.v === v);
+
+/* ---------- Dates ---------- */
+const pad = n => String(n).padStart(2,"0");
+const ymd = d => d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const parseYmd = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y,m-1,d); };
+const addDays = (s,n) => { const d = parseYmd(s); d.setDate(d.getDate()+n); return ymd(d); };
+const todayStr = () => ymd(new Date());
+const nowHM = () => { const d = new Date(); return pad(d.getHours())+":"+pad(d.getMinutes()); };
+const fWeek = new Intl.DateTimeFormat("pt-BR",{weekday:"long"});
+const fWeekS = new Intl.DateTimeFormat("pt-BR",{weekday:"short"});
+const fDM = new Intl.DateTimeFormat("pt-BR",{day:"numeric",month:"long"});
+const cap = s => s.charAt(0).toUpperCase()+s.slice(1);
+const ddmm = s => { const [y,m,d] = s.split("-"); return d+"/"+m; };
+const ddmmyyyy = s => { const [y,m,d] = s.split("-"); return d+"/"+m+"/"+y; };
+const num = n => n.toLocaleString("pt-BR",{maximumFractionDigits:1});
+const fmtH = h => num(h)+" h";
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const clone = o => JSON.parse(JSON.stringify(o));
+const isYmd = s => /^\d{4}-\d{2}-\d{2}$/.test(s);
+
+/* ---------- State ---------- */
+const S = { view:"day", date:todayStr(), lastToday:todayStr(), sel:null, histN:14, days:{}, lastBackup:null };
+const blank = date => ({date, readings:[], positives:[], negatives:[], trained:null, binge:null, sleepHours:null, sleepQuality:null, notes:"", updatedAt:0});
+const rec = date => S.days[date] || blank(date);
+const isEmpty = r => !r || (!(r.readings||[]).length && !(r.positives||[]).length && !(r.negatives||[]).length &&
+  r.trained == null && r.binge == null && r.sleepHours == null && r.sleepQuality == null && !(r.notes||"").trim());
+function normalize(date, d){
+  const r = blank(date);
+  if (!d || typeof d !== "object") return r;
+  r.readings = Array.isArray(d.readings) ? d.readings.filter(x => x && typeof x.v === "number" && LV(x.v)).map(x => ({id:String(x.id||uid()), t:String(x.t||""), v:x.v})) : [];
+  r.positives = Array.isArray(d.positives) ? d.positives.map(String) : [];
+  r.negatives = Array.isArray(d.negatives) ? d.negatives.map(String) : [];
+  r.trained = typeof d.trained === "boolean" ? d.trained : null;
+  r.binge = typeof d.binge === "boolean" ? d.binge : null;
+  r.sleepHours = typeof d.sleepHours === "number" ? d.sleepHours : null;
+  r.sleepQuality = ["ruim","regular","boa"].includes(d.sleepQuality) ? d.sleepQuality : null;
+  r.notes = typeof d.notes === "string" ? d.notes : "";
+  r.updatedAt = typeof d.updatedAt === "number" ? d.updatedAt : 0;
+  return r;
+}
+function dayStats(r){
+  const vs = (r && r.readings || []).map(x => x.v);
+  if (!vs.length) return null;
+  return { avg: Math.round(vs.reduce((a,b)=>a+b,0)/vs.length), max: Math.max(...vs), min: Math.min(...vs) };
+}
+
+/* ---------- Storage (this device) ---------- */
+const LS_KEY = "diario-humor-v1";
+let storageOk = true;
+function testStorage(){
+  try{ localStorage.setItem("__dh_test","1"); localStorage.removeItem("__dh_test"); return true; }catch(e){ return false; }
+}
+function loadLocal(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return;
+    const o = JSON.parse(raw);
+    Object.keys(o.days||{}).forEach(k => { if (isYmd(k)) S.days[k] = normalize(k, o.days[k]); });
+    S.lastBackup = typeof o.lastBackup === "number" ? o.lastBackup : null;
+  }catch(e){}
+}
+let lsTimer = null;
+function saveNow(){
+  clearTimeout(lsTimer); lsTimer = null;
+  if (!storageOk) return;
+  try{
+    localStorage.setItem(LS_KEY, JSON.stringify({days:S.days, lastBackup:S.lastBackup}));
+  }catch(e){
+    storageOk = false;
+    renderSync();
+    toast("Não consegui salvar neste aparelho. Faça um backup agora para não perder nada.");
+  }
+}
+function saveSoon(){ clearTimeout(lsTimer); lsTimer = setTimeout(saveNow, 200); }
+function renderSync(){
+  const el = $("sync");
+  el.dataset.s = storageOk ? "ok" : "off";
+  el.textContent = storageOk ? "Salvo neste aparelho" : "Não está salvando";
+  $("storageWarn").hidden = storageOk;
+}
+
+/* ---------- Editing ---------- */
+function edit(date, fn, quiet){
+  const r = clone(rec(date));
+  fn(r);
+  r.date = date;
+  r.updatedAt = Date.now();
+  if (isEmpty(r)) { delete S.days[date]; }
+  else S.days[date] = r;
+  saveSoon();
+  if (!quiet) renderDay();
+}
+
+/* ---------- Toast ---------- */
+let toastTimer = null, undoFn = null;
+function toast(msg, undo){
+  $("toastMsg").textContent = msg;
+  undoFn = undo || null;
+  $("toastUndo").hidden = !undo;
+  $("toast").hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { $("toast").hidden = true; undoFn = null; }, undo ? 5000 : 3400);
+}
+$("toastUndo").addEventListener("click", () => {
+  const f = undoFn; undoFn = null; $("toast").hidden = true;
+  if (f) f();
+});
+
+/* ---------- Face ---------- */
+function faceInner(v){
+  const none = v === null;
+  const fill = none ? "var(--surface)" : "var(--l"+v+")";
+  const ink = none ? "var(--muted)" : "var(--on-light)";
+  const k = none ? 0 : (50 - v)/50;
+  const my = 26 + (k < 0 ? 1.5 : 0);
+  let eyes;
+  if (!none && v <= 10) eyes = '<path d="M11.5 17 Q14.5 19.5 17.5 17 M22.5 17 Q25.5 19.5 28.5 17" fill="none" stroke="'+ink+'" stroke-width="2" stroke-linecap="round"/>';
+  else if (!none && v >= 90) eyes = '<path d="M12 15.5 L17 18 L12 20.5 M28 15.5 L23 18 L28 20.5" fill="none" stroke="'+ink+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+  else eyes = '<circle cx="15" cy="17.5" r="1.9" fill="'+ink+'"/><circle cx="25" cy="17.5" r="1.9" fill="'+ink+'"/>';
+  let brows = "";
+  if (!none && v >= 60 && v < 90) brows = '<path d="M11.5 13.5 L17 11.5 M28.5 13.5 L23 11.5" fill="none" stroke="'+ink+'" stroke-width="1.8" stroke-linecap="round"/>';
+  const mouth = 'M13.5 '+my+' Q20 '+(my + 7*k).toFixed(1)+' 26.5 '+my;
+  return '<circle cx="20" cy="20" r="18" fill="'+fill+'"'+(none ? ' stroke="var(--line)" stroke-width="1.5" stroke-dasharray="3 3"' : '')+'/>' +
+    eyes + brows + '<path d="'+mouth+'" fill="none" stroke="'+ink+'" stroke-width="2.2" stroke-linecap="round"/>';
+}
+
+/* ---------- Build thermometer ---------- */
+const thermo = $("thermo");
+LEVELS.slice().reverse().forEach(l => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "lv" + (l.v === 0 ? " bulb" : "");
+  b.dataset.v = l.v;
+  b.setAttribute("role","radio");
+  b.setAttribute("aria-checked","false");
+  b.setAttribute("aria-label", l.v+": "+l.name);
+  b.style.setProperty("--c","var(--l"+l.v+")");
+  b.style.setProperty("--t", l.light ? "var(--on-light)" : "var(--on-dark)");
+  b.innerHTML = '<span class="seg">'+l.v+'</span><span class="lbl">'+l.name+'</span>';
+  b.addEventListener("click", () => { S.sel = l.v; renderThermo(); });
+  thermo.appendChild(b);
+});
+
+/* ---------- Render: day ---------- */
+function renderHeader(){
+  const t = todayStr();
+  const d = parseYmd(S.date);
+  const diff = Math.round((parseYmd(t) - d)/86400000);
+  $("dateL").textContent = diff === 0 ? "Hoje" : diff === 1 ? "Ontem" : cap(fWeek.format(d));
+  $("dateS").textContent = (diff <= 1 ? cap(fWeek.format(d))+", " : "") + fDM.format(d);
+  $("nextDay").disabled = S.date >= t;
+  $("todayBtn").hidden = S.date === t;
+  $("readTitle").textContent = diff === 0 ? "Registros de hoje" : "Registros do dia";
+}
+function renderThermo(){
+  const s = S.sel;
+  thermo.querySelectorAll(".lv").forEach(b => {
+    const v = +b.dataset.v;
+    b.classList.toggle("on", s !== null && v <= s);
+    b.classList.toggle("cur", v === s);
+    b.setAttribute("aria-checked", String(v === s));
+  });
+  const L = s === null ? null : LV(s);
+  $("face").innerHTML = faceInner(s);
+  $("coNum").textContent = L ? L.v : "—";
+  $("coName").textContent = L ? L.name : "Escolha um nível";
+  $("coDesc").textContent = L ? L.desc : "Toque no termômetro no nível que mais combina com o que você sente agora.";
+  $("regBtn").disabled = !L;
+  $("regBtn").textContent = L ? "Registrar "+L.v : "Registrar";
+  $("alertBox").hidden = !(L && L.v >= 90);
+}
+function renderReadings(){
+  const r = rec(S.date);
+  const list = r.readings.slice().sort((a,b) => a.t.localeCompare(b.t));
+  const box = $("readings");
+  if (!list.length){
+    box.innerHTML = '<p class="empty-line">Nenhum registro '+(S.date === todayStr() ? "hoje" : "neste dia")+' ainda.</p>';
+    $("dayLine").hidden = true;
+    return;
+  }
+  box.innerHTML = list.map(x =>
+    '<span class="rd" style="--c:var(--l'+x.v+')"><i></i><b>'+x.v+'</b><span>'+esc(x.t || "sem horário")+'</span>'+
+    '<button type="button" class="x-btn" data-rid="'+esc(x.id)+'" aria-label="Remover registro '+x.v+(x.t ? " das "+esc(x.t) : "")+'">×</button></span>'
+  ).join("");
+  const st = dayStats(r);
+  const line = $("dayLine");
+  line.hidden = false;
+  line.innerHTML = list.length > 1
+    ? 'Média do dia <b>'+st.avg+'</b> · pior momento <b>'+st.max+'</b> · melhor <b>'+st.min+'</b>'
+    : 'Um registro até agora';
+}
+function renderSleep(){
+  const r = rec(S.date);
+  $("sleepVal").textContent = r.sleepHours == null ? "—" : fmtH(r.sleepHours);
+  $("sleepQ").querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(r.sleepQuality === b.dataset.q)));
+  $("sleepClear").hidden = r.sleepHours == null && r.sleepQuality == null;
+}
+function renderHabits(){
+  const r = rec(S.date);
+  document.querySelectorAll(".yn").forEach(g => {
+    const k = g.dataset.k;
+    g.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(r[k] === (b.dataset.val === "1"))));
+  });
+}
+function renderPoints(){
+  const r = rec(S.date);
+  [["posList","positives","positivo"],["negList","negatives","negativo"]].forEach(([id,key,word]) => {
+    $(id).innerHTML = r[key].map((t,i) =>
+      '<li><span>'+esc(t)+'</span><button type="button" class="x-btn" data-key="'+key+'" data-i="'+i+'" aria-label="Remover ponto '+word+'">×</button></li>'
+    ).join("");
+  });
+}
+function renderNotes(){
+  const el = $("notes");
+  if (document.activeElement !== el) el.value = rec(S.date).notes || "";
+}
+let regDate = null;
+function renderDay(){
+  renderHeader();
+  if (regDate !== S.date){ regDate = S.date; $("regTime").value = nowHM(); }
+  renderThermo(); renderReadings(); renderSleep(); renderHabits(); renderPoints(); renderNotes();
+}
+
+/* ---------- Render: history ---------- */
+function periodDates(n){ const t = todayStr(); return Array.from({length:n}, (_,i) => addDays(t, i-(n-1))); }
+function periodData(n){
+  const dates = periodDates(n);
+  const days = dates.map(d => S.days[d]).filter(r => r && !isEmpty(r));
+  const daily = days.map(r => ({r, st:dayStats(r)})).filter(x => x.st);
+  let peak = null;
+  daily.forEach(x => { if (!peak || x.st.max > peak.v) peak = {v:x.st.max, date:x.r.date}; });
+  const avg = daily.length ? Math.round(daily.reduce((a,x)=>a+x.st.avg,0)/daily.length) : null;
+  const sl = days.filter(r => r.sleepHours != null);
+  const sleepAvg = sl.length ? sl.reduce((a,r)=>a+r.sleepHours,0)/sl.length : null;
+  const tr = days.filter(r => r.trained != null), trY = tr.filter(r => r.trained).length;
+  const bi = days.filter(r => r.binge != null), biY = bi.filter(r => r.binge).length;
+  return {dates, days, avg, peak, sleepAvg, sleepN:sl.length, tr:tr.length, trY, bi:bi.length, biY};
+}
+function renderBackupInfo(){
+  const el = $("backupInfo");
+  const total = Object.keys(S.days).length;
+  if (!S.lastBackup){
+    el.textContent = "Último backup: nunca";
+    el.classList.toggle("stale", total >= 3);
+    return;
+  }
+  const days = Math.floor((Date.now() - S.lastBackup)/86400000);
+  el.textContent = "Último backup: " + ddmmyyyy(ymd(new Date(S.lastBackup))) + (days === 0 ? " (hoje)" : days === 1 ? " (ontem)" : " (há "+days+" dias)");
+  el.classList.toggle("stale", days >= 7 && total > 0);
+}
+function renderHist(){
+  const n = S.histN, P = periodData(n), t = todayStr();
+  document.querySelectorAll("#histN button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.n === n)));
+  $("countLine").textContent = P.days.length+" de "+n+" dias com registro";
+
+  const stat = (k,v,s) => '<div class="stat"><span class="k-label">'+k+'</span><span class="v">'+v+'</span><span class="s">'+s+'</span></div>';
+  $("stats").innerHTML =
+    stat("Termômetro", P.avg == null ? "—" : P.avg, P.avg == null ? "sem registros" : "média · pior momento "+P.peak.v+" ("+ddmm(P.peak.date)+")") +
+    stat("Sono", P.sleepAvg == null ? "—" : fmtH(Math.round(P.sleepAvg*10)/10), P.sleepN ? "média de "+P.sleepN+(P.sleepN === 1 ? " noite" : " noites") : "sem registros") +
+    stat("Treino", P.tr ? P.trY+(P.trY === 1 ? " dia" : " dias") : "—", P.tr ? "de "+P.tr+" com resposta" : "sem registros") +
+    stat("Compulsão", P.bi ? P.biY+(P.biY === 1 ? " dia" : " dias") : "—", P.bi ? "de "+P.bi+" com resposta" : "sem registros");
+
+  const cols = 'style="grid-template-columns:repeat('+n+',minmax(0,1fr));gap:'+(n > 20 ? 2 : 4)+'px"';
+  const cells = fn => P.dates.map(d => '<div class="c">'+fn(S.days[d], d)+'</div>').join("");
+  const thermoCells = cells(r => {
+    const st = dayStats(r); if (!st) return "";
+    return '<span class="bar" style="height:'+Math.max(st.max,3)+'%;background:var(--l'+st.max+')"></span>'+
+           '<span class="avg" style="bottom:'+Math.max(st.avg,1.5)+'%"></span>';
+  });
+  const sleepCells = cells(r => (r && r.sleepHours != null) ? '<span class="bar" style="height:'+Math.max(Math.min(r.sleepHours/12,1)*100,3)+'%"></span>' : "");
+  const dotCells = key => cells(r => (r && r[key] != null) ? '<span class="dot '+(r[key] ? "yes" : "no")+'"></span>' : "");
+  const dateCells = P.dates.map((d,i) => {
+    const show = n <= 14 || i % 5 === 4 || i === n-1 || i === 0;
+    return '<div class="c'+(d === t ? " today" : "")+'">'+(show ? +d.slice(8) : "")+'</div>';
+  }).join("");
+  $("chart").style.minWidth = (n*9)+"px";
+  $("chart").innerHTML =
+    '<div><div class="track-l">Termômetro (0 a 100)</div><div class="track t-thermo" '+cols+'>'+thermoCells+'</div></div>'+
+    '<div><div class="track-l">Sono (horas, até 12)</div><div class="track t-sleep" '+cols+'>'+sleepCells+'</div></div>'+
+    '<div><div class="track-l">Treino</div><div class="track t-dots" '+cols+'>'+dotCells("trained")+'</div></div>'+
+    '<div><div class="track-l">Compulsão alimentar</div><div class="track t-dots" '+cols+'>'+dotCells("binge")+'</div></div>'+
+    '<div class="track t-dates" '+cols+'>'+dateCells+'</div>';
+
+  renderBackupInfo();
+
+  const list = P.days.slice().reverse();
+  if (!list.length){
+    $("dayList").innerHTML = '<div class="empty"><p>Os dias que você registrar aparecem aqui, com o termômetro, o sono e os hábitos lado a lado.</p><button type="button" class="ghost" data-open="'+t+'" style="flex:none">Registrar hoje</button></div>';
+    return;
+  }
+  $("dayList").innerHTML = list.map(r => {
+    const st = dayStats(r);
+    const d = parseYmd(r.date);
+    const reads = r.readings.slice().sort((a,b)=>a.t.localeCompare(b.t));
+    const meta = [];
+    if (r.sleepHours != null || r.sleepQuality) meta.push("Sono "+[r.sleepHours != null ? fmtH(r.sleepHours) : "", r.sleepQuality || ""].filter(Boolean).join(", "));
+    if (r.trained != null) meta.push(r.trained ? "Treinou" : "Não treinou");
+    if (r.binge != null) meta.push(r.binge ? "Teve compulsão" : "Sem compulsão");
+    return '<article class="dcard">'+
+      '<div class="dcard-h"><strong>'+cap(fWeekS.format(d)).replace(".","")+', '+ddmm(r.date)+'</strong><button type="button" class="open-btn" data-open="'+r.date+'">Abrir</button></div>'+
+      (reads.length ? '<div class="readings">'+reads.map(x => '<span class="rd" style="--c:var(--l'+x.v+');padding-right:10px"><i></i><b>'+x.v+'</b><span>'+esc(x.t)+'</span></span>').join("")+'</div>' : "")+
+      (st && reads.length > 1 ? '<p class="meta">Média '+st.avg+' · pior momento '+st.max+'</p>' : "")+
+      (meta.length ? '<p class="meta">'+meta.join(" · ")+'</p>' : "")+
+      ((r.positives.length || r.negatives.length) ? '<ul>'+r.positives.map(p=>'<li class="p">'+esc(p)+'</li>').join("")+r.negatives.map(p=>'<li class="n">'+esc(p)+'</li>').join("")+'</ul>' : "")+
+      (r.notes && r.notes.trim() ? '<p>'+esc(r.notes.trim())+'</p>' : "")+
+    '</article>';
+  }).join("");
+}
+
+function renderAll(){
+  renderSync();
+  if (S.view === "day") renderDay(); else renderHist();
+}
+
+/* ---------- Summary text and CSV ---------- */
+function summaryText(){
+  const n = S.histN, P = periodData(n);
+  const L = [];
+  L.push("Diário de Humor — "+ddmmyyyy(P.dates[0])+" a "+ddmmyyyy(P.dates[n-1])+" ("+n+" dias)");
+  L.push("Dias com registro: "+P.days.length);
+  L.push("");
+  L.push("Termômetro (0 a 100): "+(P.avg == null ? "sem registros" : "média "+P.avg+" · pior momento "+P.peak.v+" em "+ddmm(P.peak.date)));
+  L.push("Sono: "+(P.sleepAvg == null ? "sem registros" : "média de "+fmtH(Math.round(P.sleepAvg*10)/10)+" por noite ("+P.sleepN+" noites registradas)"));
+  L.push("Treino: "+(P.tr ? P.trY+" de "+P.tr+" dias com resposta" : "sem registros"));
+  L.push("Compulsão alimentar: "+(P.bi ? P.biY+" de "+P.bi+" dias com resposta" : "sem registros"));
+  if (P.days.length){
+    L.push(""); L.push("Dia a dia");
+    P.days.forEach(r => {
+      const st = dayStats(r);
+      const parts = [];
+      if (st) parts.push("termômetro "+r.readings.slice().sort((a,b)=>a.t.localeCompare(b.t)).map(x => x.v+(x.t ? " ("+x.t+")" : "")).join(", ")+(r.readings.length > 1 ? " · média "+st.avg : ""));
+      if (r.sleepHours != null || r.sleepQuality) parts.push("sono "+[r.sleepHours != null ? fmtH(r.sleepHours) : "", r.sleepQuality || ""].filter(Boolean).join(", "));
+      if (r.trained != null) parts.push("treino: "+(r.trained ? "sim" : "não"));
+      if (r.binge != null) parts.push("compulsão: "+(r.binge ? "sim" : "não"));
+      L.push(cap(fWeekS.format(parseYmd(r.date))).replace(".","")+" "+ddmm(r.date)+" — "+(parts.join(" · ") || "sem dados do termômetro"));
+      r.positives.forEach(p => L.push("   + "+p));
+      r.negatives.forEach(p => L.push("   − "+p));
+      if (r.notes && r.notes.trim()) L.push("   Anotações: "+r.notes.trim().replace(/\s*\n\s*/g," / "));
+    });
+  }
+  return L.join("\n");
+}
+function csvText(){
+  const q = v => '"'+String(v == null ? "" : v).replace(/"/g,'""')+'"';
+  const yn = b => b == null ? "" : (b ? "Sim" : "Não");
+  const head = ["Data","Registros do termômetro","Média","Pior momento","Horas de sono","Qualidade do sono","Treino","Compulsão alimentar","Pontos positivos","Pontos negativos","Anotações"];
+  const rows = Object.keys(S.days).sort().map(k => S.days[k]).filter(r => !isEmpty(r)).map(r => {
+    const st = dayStats(r);
+    return [ddmmyyyy(r.date),
+      r.readings.slice().sort((a,b)=>a.t.localeCompare(b.t)).map(x => (x.t ? x.t+" = " : "")+x.v).join(" | "),
+      st ? st.avg : "", st ? st.max : "",
+      r.sleepHours == null ? "" : String(r.sleepHours).replace(".",","),
+      r.sleepQuality || "", yn(r.trained), yn(r.binge),
+      r.positives.join(" | "), r.negatives.join(" | "), (r.notes||"").trim()
+    ].map(q).join(";");
+  });
+  return "﻿"+[head.map(q).join(";")].concat(rows).join("\r\n");
+}
+function backupJson(){
+  return JSON.stringify({app:"diario-de-humor", version:1, exportedAt:new Date().toISOString(), days:S.days}, null, 1);
+}
+
+/* Share sheet on the phone (Save to Files, WhatsApp, e-mail); plain download elsewhere.
+   Must be called straight from a click so the share sheet is allowed to open. */
+function shareFile(name, text, mime){
+  const blob = new Blob([text], {type:mime});
+  let file = null;
+  try{ file = new File([blob], name, {type:mime}); }catch(e){}
+  if (file && navigator.canShare && navigator.share){
+    let ok = false;
+    try{ ok = navigator.canShare({files:[file]}); }catch(e){}
+    if (ok){
+      return navigator.share({files:[file], title:name}).then(() => "shared", e => (e && e.name === "AbortError") ? "cancel" : download(blob, name));
+    }
+  }
+  return Promise.resolve(download(blob, name));
+}
+function download(blob, name){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  return "downloaded";
+}
+
+/* ---------- Events ---------- */
+function goDate(d){ S.date = d; S.sel = null; renderDay(); }
+$("prevDay").addEventListener("click", () => goDate(addDays(S.date,-1)));
+$("nextDay").addEventListener("click", () => { if (S.date < todayStr()) goDate(addDays(S.date,1)); });
+$("todayBtn").addEventListener("click", () => goDate(todayStr()));
+
+$("regBtn").addEventListener("click", () => {
+  if (S.sel === null) return;
+  const v = S.sel, t = $("regTime").value || nowHM(), id = uid();
+  edit(S.date, r => { r.readings.push({id, t, v}); });
+  toast(v+" registrado às "+t);
+});
+$("readings").addEventListener("click", e => {
+  const b = e.target.closest("[data-rid]"); if (!b) return;
+  const id = b.dataset.rid, date = S.date;
+  const item = rec(date).readings.find(x => x.id === id); if (!item) return;
+  edit(date, r => { r.readings = r.readings.filter(x => x.id !== id); });
+  toast("Registro removido", () => edit(date, r => { if (!r.readings.some(x => x.id === id)) r.readings.push(item); }));
+});
+
+$("sleepMinus").addEventListener("click", () => edit(S.date, r => { r.sleepHours = r.sleepHours == null ? 7 : Math.max(0, r.sleepHours - 0.5); }));
+$("sleepPlus").addEventListener("click", () => edit(S.date, r => { r.sleepHours = r.sleepHours == null ? 7 : Math.min(16, r.sleepHours + 0.5); }));
+$("sleepClear").addEventListener("click", () => edit(S.date, r => { r.sleepHours = null; r.sleepQuality = null; }));
+$("sleepQ").addEventListener("click", e => {
+  const b = e.target.closest("[data-q]"); if (!b) return;
+  edit(S.date, r => { r.sleepQuality = r.sleepQuality === b.dataset.q ? null : b.dataset.q; });
+});
+document.querySelectorAll(".yn").forEach(g => g.addEventListener("click", e => {
+  const b = e.target.closest("[data-val]"); if (!b) return;
+  const k = g.dataset.k, val = b.dataset.val === "1";
+  edit(S.date, r => { r[k] = r[k] === val ? null : val; });
+}));
+
+function bindPoints(formId, inputId, key){
+  $(formId).addEventListener("submit", e => {
+    e.preventDefault();
+    const inp = $(inputId), t = inp.value.trim().slice(0,200);
+    if (!t) return;
+    edit(S.date, r => { r[key].push(t); });
+    inp.value = ""; inp.focus();
+  });
+}
+bindPoints("posForm","posInput","positives");
+bindPoints("negForm","negInput","negatives");
+["posList","negList"].forEach(id => $(id).addEventListener("click", e => {
+  const b = e.target.closest("[data-key]"); if (!b) return;
+  const key = b.dataset.key, i = +b.dataset.i, date = S.date;
+  const text = rec(date)[key][i]; if (text == null) return;
+  edit(date, r => { r[key].splice(i,1); });
+  toast("Ponto removido", () => edit(date, r => { r[key].splice(Math.min(i, r[key].length), 0, text); }));
+}));
+
+$("notes").addEventListener("input", e => {
+  const v = e.target.value;
+  edit(S.date, r => { r.notes = v; }, true);
+});
+
+function setView(v){
+  S.view = v;
+  $("viewDay").hidden = v !== "day";
+  $("viewHist").hidden = v !== "hist";
+  $("datebar").hidden = v !== "day";
+  document.querySelectorAll(".tab").forEach(b => { if (b.dataset.view === v) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
+  $("copyFallback").hidden = true;
+  renderAll();
+  window.scrollTo(0,0);
+}
+document.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => setView(b.dataset.view)));
+$("histN").addEventListener("click", e => {
+  const b = e.target.closest("[data-n]"); if (!b) return;
+  S.histN = +b.dataset.n; $("copyFallback").hidden = true; renderHist();
+});
+$("viewHist").addEventListener("click", e => {
+  const b = e.target.closest("[data-open]"); if (!b) return;
+  S.date = b.dataset.open; S.sel = null; setView("day");
+});
+
+$("copyBtn").addEventListener("click", () => {
+  const text = summaryText();
+  const fb = $("copyFallback");
+  const fallback = () => { fb.value = text; fb.hidden = false; fb.focus(); fb.select(); toast("O resumo está selecionado abaixo. É só copiar."); };
+  try{
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(() => toast("Resumo copiado. Cole no WhatsApp, e-mail ou onde quiser."), fallback);
+    } else fallback();
+  }catch(e){ fallback(); }
+});
+
+$("csvBtn").addEventListener("click", () => {
+  if (!Object.keys(S.days).length){ toast("Ainda não há registros para exportar."); return; }
+  shareFile("diario-de-humor-"+todayStr()+".csv", csvText(), "text/csv").then(r => {
+    if (r === "downloaded") toast("Planilha baixada");
+  });
+});
+
+$("backupBtn").addEventListener("click", () => {
+  if (!Object.keys(S.days).length){ toast("Ainda não há registros para guardar."); return; }
+  shareFile("diario-de-humor-backup-"+todayStr()+".json", backupJson(), "application/json").then(r => {
+    if (r === "cancel") return;
+    S.lastBackup = Date.now(); saveNow(); renderBackupInfo();
+    toast(r === "shared" ? "Backup pronto. Guarde o arquivo no iCloud Drive ou onde preferir." : "Backup baixado");
+  });
+});
+$("restoreBtn").addEventListener("click", () => { $("restoreFile").value = ""; $("restoreFile").click(); });
+$("restoreFile").addEventListener("change", e => {
+  const f = e.target.files && e.target.files[0]; if (!f) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    let o = null;
+    try{ o = JSON.parse(reader.result); }catch(err){}
+    if (!o || o.app !== "diario-de-humor" || !o.days || typeof o.days !== "object"){
+      toast("Esse arquivo não é um backup do Diário de Humor.");
+      return;
+    }
+    let added = 0, updated = 0;
+    Object.keys(o.days).forEach(k => {
+      if (!isYmd(k)) return;
+      const inc = normalize(k, o.days[k]);
+      if (isEmpty(inc)) return;
+      const cur = S.days[k];
+      if (!cur){ S.days[k] = inc; added++; }
+      else if (inc.updatedAt > cur.updatedAt){ S.days[k] = inc; updated++; }
+    });
+    saveNow();
+    renderAll();
+    toast(added + updated === 0 ? "Nada novo nesse backup. Tudo já estava aqui." :
+      "Backup restaurado: "+(added ? added+(added === 1 ? " dia novo" : " dias novos") : "")+(added && updated ? " e " : "")+(updated ? updated+(updated === 1 ? " dia atualizado" : " dias atualizados") : ""));
+  };
+  reader.onerror = () => toast("Não consegui ler esse arquivo. Tente de novo.");
+  reader.readAsText(f);
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden"){ if (lsTimer) saveNow(); return; }
+  const t = todayStr();
+  if (t !== S.lastToday){
+    if (S.date === S.lastToday){ S.date = t; S.sel = null; regDate = null; }
+    S.lastToday = t;
+    renderAll();
+  }
+});
+window.addEventListener("pagehide", () => { if (lsTimer) saveNow(); });
+
+/* ---------- Start ---------- */
+storageOk = testStorage();
+loadLocal();
+renderAll();
+try{ if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); }catch(e){}
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")){
+  window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); });
+}
+})();
+</script>
+</body>
+</html>
